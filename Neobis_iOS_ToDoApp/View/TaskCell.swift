@@ -4,7 +4,8 @@ class TaskCell: UITableViewCell {
     var done = false
     weak var delegate: TaskCellDelegate?
     
-    // Define your cell's UI elements here
+    var isEditingMode = false
+    
     let titleLabel: UILabel = {
         let label = UILabel()
         label.font = UIFont.systemFont(ofSize: 16, weight: .regular)
@@ -21,7 +22,7 @@ class TaskCell: UITableViewCell {
     }()
     
     let isDone: UIButton = {
-       let button = UIButton()
+        let button = UIButton()
         button.translatesAutoresizingMaskIntoConstraints = false
         return button
     }()
@@ -55,7 +56,7 @@ class TaskCell: UITableViewCell {
         image.translatesAutoresizingMaskIntoConstraints = false
         return image
     }()
-
+    
     override init(style: UITableViewCell.CellStyle, reuseIdentifier: String?) {
         super.init(style: style, reuseIdentifier: reuseIdentifier)
         setupConstraints()
@@ -101,6 +102,12 @@ class TaskCell: UITableViewCell {
         ])
     }
     
+    func setEditingMode(_ isEditing: Bool) {
+        isEditingMode = isEditing
+        infoImage.isHidden = isEditing
+        arrowImage.isHidden = isEditing
+    }
+    
     @objc func donePressed() {
         if done {
             done = false
@@ -114,9 +121,9 @@ class TaskCell: UITableViewCell {
     }
     
     override func systemLayoutSizeFitting(_ targetSize: CGSize) -> CGSize {
-            let fittingSize = CGSize(width: targetSize.width, height: UIView.layoutFittingCompressedSize.height)
-            return contentView.systemLayoutSizeFitting(fittingSize, withHorizontalFittingPriority: .required, verticalFittingPriority: .fittingSizeLevel)
-        }
+        let fittingSize = CGSize(width: targetSize.width, height: UIView.layoutFittingCompressedSize.height)
+        return contentView.systemLayoutSizeFitting(fittingSize, withHorizontalFittingPriority: .required, verticalFittingPriority: .fittingSizeLevel)
+    }
     
     required init?(coder aDecoder: NSCoder) {
         fatalError("init(coder:) has not been implemented")

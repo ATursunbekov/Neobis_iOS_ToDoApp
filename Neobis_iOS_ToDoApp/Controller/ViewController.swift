@@ -126,11 +126,23 @@ class ViewController: UIViewController, UITableViewDataSource, UITableViewDelega
             editImage.image = UIImage(systemName: "pencil.circle.fill")
             addButton.isHidden = false
             tableView.isEditing = false
+            
+            for cell in tableView.visibleCells {
+                if let taskCell = cell as? TaskCell {
+                    taskCell.setEditingMode(false)
+                }
+            }
         } else {
             tableView.isEditing = true
             isChanging = true
             editImage.image = UIImage(systemName: "x.circle.fill")
             addButton.isHidden = true
+            
+            for cell in tableView.visibleCells {
+                if let taskCell = cell as? TaskCell {
+                    taskCell.setEditingMode(true)
+                }
+            }
         }
     }
     
@@ -180,8 +192,9 @@ class ViewController: UIViewController, UITableViewDataSource, UITableViewDelega
     
     func tableView(_ tableView: UITableView, commit editingStyle: UITableViewCell.EditingStyle, forRowAt indexPath: IndexPath) {
         if editingStyle == .delete {
-            dataManager.tasks.remove(at: indexPath.row)
+            DataManager.shared.tasks.remove(at: indexPath.row)
             tableView.deleteRows(at: [indexPath], with: .fade)
+            refreshLocalData()
         }
     }
     
@@ -199,10 +212,20 @@ class ViewController: UIViewController, UITableViewDataSource, UITableViewDelega
         // Get the index path of the cell
         if let indexPath = tableView.indexPath(for: cell) {
             // Update the isDone property of the corresponding Task object
-            dataManager.tasks[indexPath.row].isDone = cell.done
+            DataManager.shared.tasks[indexPath.row].isDone = cell.done
             // Reload the cell to reflect the updated state
             tableView.reloadRows(at: [indexPath], with: .none)
-            print(dataManager.tasks[indexPath.row].isDone)
+            //For Saving locally
+            refreshLocalData()
+            //print(dataManager.tasks[indexPath.row].isDone)
+        }
+    }
+    
+    func refreshLocalData() {
+        let encoder = JSONEncoder()
+        
+        if let encoded = try? encoder.encode(DataManager.shared.tasks) {
+            UserDefaults.standard.set(encoded, forKey: "tasks")
         }
     }
 }

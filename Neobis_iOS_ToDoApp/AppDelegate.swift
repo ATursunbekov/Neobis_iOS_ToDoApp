@@ -14,6 +14,13 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
 
     func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?) -> Bool {
         // Override point for customization after application launch.
+        if let savedTasksData = UserDefaults.standard.data(forKey: "tasks") {
+            let decoder = JSONDecoder()
+            if let loadedTasks = try? decoder.decode([Task].self, from: savedTasksData) {
+                // Assign the loaded tasks to your data manager or relevant storage
+                DataManager.shared.tasks = loadedTasks
+            }
+        }
         return true
     }
 

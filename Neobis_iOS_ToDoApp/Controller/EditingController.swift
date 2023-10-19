@@ -174,6 +174,7 @@ class EditingViewController: UIViewController {
                 DataManager.shared.tasks[self.index!] = Task(title: self.textView.text, description: self.descTextView.text, isDone: self.isDone ?? false)
             }
         }
+        refreshLocalData()
         dismiss(animated: true)
     }
     
@@ -185,9 +186,18 @@ class EditingViewController: UIViewController {
         
         DispatchQueue.main.async {
             DataManager.shared.tasks.remove(at: self.index!)
+
         }
-        
+        refreshLocalData()
         dismiss(animated: true)
+    }
+    
+    func refreshLocalData() {
+        let encoder = JSONEncoder()
+        
+        if let encoded = try? encoder.encode(DataManager.shared.tasks) {
+            UserDefaults.standard.set(encoded, forKey: "tasks")
+        }
     }
 }
 
