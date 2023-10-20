@@ -79,6 +79,7 @@ class EditingViewController: UIViewController {
         button.translatesAutoresizingMaskIntoConstraints = false
         return button
     }()
+    
     var titlePlaceholder : UILabel = {
         let placeholderLabel = UILabel()
         placeholderLabel.text = "Название"
@@ -94,6 +95,7 @@ class EditingViewController: UIViewController {
         placeholderLabel.textColor = .tertiaryLabel
         return placeholderLabel
     }()
+    
     override func viewDidLoad() {
         super.viewDidLoad()
         view.backgroundColor = UIColor(red: 246 / 255, green: 245 / 255, blue: 247 / 255, alpha: 1)
@@ -166,6 +168,14 @@ class EditingViewController: UIViewController {
         deleteButton.addTarget(self, action: #selector(deleteTapped), for: .touchUpInside)
     }
     
+    func refreshLocalData() {
+        let encoder = JSONEncoder()
+        
+        if let encoded = try? encoder.encode(DataManager.shared.tasks) {
+            UserDefaults.standard.set(encoded, forKey: "tasks")
+        }
+    }
+    
     @objc func saveButtonTapped() {
         DispatchQueue.main.async {
             if self.isNew {
@@ -190,14 +200,6 @@ class EditingViewController: UIViewController {
         }
         refreshLocalData()
         dismiss(animated: true)
-    }
-    
-    func refreshLocalData() {
-        let encoder = JSONEncoder()
-        
-        if let encoded = try? encoder.encode(DataManager.shared.tasks) {
-            UserDefaults.standard.set(encoded, forKey: "tasks")
-        }
     }
 }
 

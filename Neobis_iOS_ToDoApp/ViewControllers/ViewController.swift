@@ -1,6 +1,10 @@
 import UIKit
 
-class ViewController: UIViewController, UITableViewDataSource, UITableViewDelegate, TaskCellDelegate {
+protocol TaskCellDelegate: AnyObject {
+    func taskCellDidToggleDone(for cell: TaskCell)
+}
+
+class ViewController: UIViewController {
     var dataManager = DataManager.shared
     
     var isChanging = false
@@ -120,6 +124,14 @@ class ViewController: UIViewController, UITableViewDataSource, UITableViewDelega
         editButton.addTarget(self, action: #selector(editPressed), for: .touchUpInside)
     }
     
+    func refreshLocalData() {
+        let encoder = JSONEncoder()
+        
+        if let encoded = try? encoder.encode(DataManager.shared.tasks) {
+            UserDefaults.standard.set(encoded, forKey: "tasks")
+        }
+    }
+    
     @objc func editPressed() {
         if isChanging {
             isChanging = false
@@ -152,8 +164,10 @@ class ViewController: UIViewController, UITableViewDataSource, UITableViewDelega
         vc.modalPresentationStyle = .fullScreen
         present(vc, animated: true)
     }
-    
-    // MARK: - UITableViewDataSource Methods
+}
+
+
+extension ViewController: UITableViewDataSource, UITableViewDelegate, TaskCellDelegate{
     func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
         return dataManager.tasks.count
     }
@@ -220,17 +234,4 @@ class ViewController: UIViewController, UITableViewDataSource, UITableViewDelega
             //print(dataManager.tasks[indexPath.row].isDone)
         }
     }
-    
-    func refreshLocalData() {
-        let encoder = JSONEncoder()
-        
-        if let encoded = try? encoder.encode(DataManager.shared.tasks) {
-            UserDefaults.standard.set(encoded, forKey: "tasks")
-        }
-    }
-}
-
-//Protocol for cell
-protocol TaskCellDelegate: AnyObject {
-    func taskCellDidToggleDone(for cell: TaskCell)
 }
