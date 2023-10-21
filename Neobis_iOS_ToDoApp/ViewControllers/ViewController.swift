@@ -62,22 +62,16 @@ class ViewController: UIViewController {
     }
     
     func tableView(_ tableView: UITableView, viewForFooterInSection section: Int) -> UIView? {
-        // Create a view for the section footer
-        let footerView = UIView(frame: CGRect(x: 0, y: 0, width: tableView.bounds.width, height: 100)) // Set the desired height
-        
-        // Add a label to the footer view
+        let footerView = UIView(frame: CGRect(x: 0, y: 0, width: tableView.bounds.width, height: 100))
         let labelWidth: CGFloat = 270
         let labelHeight: CGFloat = 100
-        let labelX = (footerView.bounds.width - labelWidth) / 2 // Calculate X position for centering the label
+        let labelX = (footerView.bounds.width - labelWidth) / 2
         let footerLabel = UILabel(frame: CGRect(x: labelX, y: 0, width: labelWidth, height: labelHeight))
         footerLabel.textAlignment = .center
         footerLabel.numberOfLines = 0
         footerLabel.text = "Создайте новую задачу нажав на кнопку плюс."
         footerLabel.textColor = .black
-        
-        // Add the label to the footer view
         footerView.addSubview(footerLabel)
-        
         return footerView
     }
     
@@ -187,7 +181,6 @@ extension ViewController: UITableViewDataSource, UITableViewDelegate, TaskCellDe
         return UITableView.automaticDimension
     }
     
-    // Remove separator insets for the first and last cells
     func tableView(_ tableView: UITableView, willDisplay cell: UITableViewCell, forRowAt indexPath: IndexPath) {
         if indexPath.row == dataManager.tasks.count - 1 {
             cell.separatorInset.left = cell.bounds.size.width
@@ -216,22 +209,16 @@ extension ViewController: UITableViewDataSource, UITableViewDelegate, TaskCellDe
         return true
     }
     
-    // Handle cell reordering
     func tableView(_ tableView: UITableView, moveRowAt sourceIndexPath: IndexPath, to destinationIndexPath: IndexPath) {
         let movedTask = dataManager.tasks.remove(at: sourceIndexPath.row)
         dataManager.tasks.insert(movedTask, at: destinationIndexPath.row)
     }
     
     func taskCellDidToggleDone(for cell: TaskCell) {
-        // Get the index path of the cell
         if let indexPath = tableView.indexPath(for: cell) {
-            // Update the isDone property of the corresponding Task object
             DataManager.shared.tasks[indexPath.row].isDone = cell.done
-            // Reload the cell to reflect the updated state
             tableView.reloadRows(at: [indexPath], with: .none)
-            //For Saving locally
             refreshLocalData()
-            //print(dataManager.tasks[indexPath.row].isDone)
         }
     }
 }

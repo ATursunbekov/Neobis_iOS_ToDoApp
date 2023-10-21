@@ -7,7 +7,6 @@
 import UIKit
 
 class EditingViewController: UIViewController {
-    //delegates and callback
     var isNew: Bool = true
     var taskTitle: String = ""
     var desc: String = ""
@@ -162,9 +161,7 @@ class EditingViewController: UIViewController {
         descPlaceholder.font = .italicSystemFont(ofSize: (descTextView.font?.pointSize)!)
         descPlaceholder.frame.origin = CGPoint(x: 5, y: (descTextView.font?.pointSize)! / 2)
         descPlaceholder.isHidden = !descTextView.text.isEmpty
-        
         //Targets:
-        
         deleteButton.addTarget(self, action: #selector(deleteTapped), for: .touchUpInside)
     }
     
@@ -183,8 +180,8 @@ class EditingViewController: UIViewController {
             } else {
                 DataManager.shared.tasks[self.index!] = Task(title: self.textView.text, description: self.descTextView.text, isDone: self.isDone ?? false)
             }
+            self.refreshLocalData()
         }
-        refreshLocalData()
         dismiss(animated: true)
     }
     
@@ -193,12 +190,10 @@ class EditingViewController: UIViewController {
     }
     
     @objc func deleteTapped() {
-        
         DispatchQueue.main.async {
             DataManager.shared.tasks.remove(at: self.index!)
-
+            self.refreshLocalData()
         }
-        refreshLocalData()
         dismiss(animated: true)
     }
 }
