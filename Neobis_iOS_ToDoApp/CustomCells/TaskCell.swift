@@ -56,6 +56,16 @@ class TaskCell: UITableViewCell {
         image.translatesAutoresizingMaskIntoConstraints = false
         return image
     }()
+
+    // func setupCell(task: Task) {
+        // cell.selectionStyle = .none
+        // cell.delegate = self
+        // cell.titleLabel.text = dataManager.tasks[indexPath.row].title
+        // cell.desc.text = dataManager.tasks[indexPath.row].description
+        // cell.done = dataManager.tasks[indexPath.row].isDone
+        // cell.checkImage.image = dataManager.tasks[indexPath.row].isDone ? UIImage(systemName: "checkmark.circle") : UIImage(systemName: "circle")
+         
+    // }
     
     override init(style: UITableViewCell.CellStyle, reuseIdentifier: String?) {
         super.init(style: style, reuseIdentifier: reuseIdentifier)
