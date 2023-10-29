@@ -7,58 +7,50 @@ protocol TaskCellDelegate: AnyObject {
 class ViewController: UIViewController {
     var dataManager = DataManager.shared
     
-    var isChanging = false
+    var isEditingMode = false
     var isNew = false
     
-    var tableView: UITableView = {
+    lazy var tableView: UITableView = {
         let tableView = UITableView()
         tableView.register(TaskCell.self, forCellReuseIdentifier: "CellIdentifier")
         tableView.tableHeaderView = UIView()
-        tableView.translatesAutoresizingMaskIntoConstraints = false
+        tableView.dataSource = self
+        tableView.delegate = self
+        tableView.sectionFooterHeight = 100
         return tableView
     }()
     
-    var addButton: UIButton = {
-        let button = UIButton()
-        button.translatesAutoresizingMaskIntoConstraints = false
-        return button
-    }()
+    var addButton = UIButton()
     
     var addImage: UIImageView = {
-        let image = UIImageView()
-        image.image = UIImage(systemName: "plus.circle.fill")
+        let image = UIImageView(image: UIImage(systemName: "plus.circle.fill"))
         image.contentMode = .scaleAspectFit
         image.tintColor = .systemGreen
-        image.translatesAutoresizingMaskIntoConstraints = false
         return image
     }()
     
-    var editButton: UIButton = {
-        let button = UIButton()
-        button.translatesAutoresizingMaskIntoConstraints = false
-        return button
-    }()
+    var editButton = UIButton()
     
     var editImage: UIImageView = {
-        let image = UIImageView()
-        image.image = UIImage(systemName: "pencil.circle.fill")
+        let image = UIImageView(image: UIImage(systemName: "pencil.circle.fill"))
         image.contentMode = .scaleAspectFit
         image.tintColor = .systemBlue
-        image.translatesAutoresizingMaskIntoConstraints = false
         return image
     }()
     
     override func viewDidLoad() {
         super.viewDidLoad()
-        tableView.dataSource = self
-        tableView.delegate = self
         setupConstraints()
         addAllTargets()
-        tableView.sectionFooterHeight = 100
     }
     
     override func viewIsAppearing(_ animated: Bool) {
         tableView.reloadData()
+    }
+    
+    override func viewWillAppear(_ animated: Bool) {
+        super.viewWillAppear(animated)
+        navigationController?.setNavigationBarHidden(true, animated: animated)
     }
     
     func tableView(_ tableView: UITableView, viewForFooterInSection section: Int) -> UIView? {
@@ -75,17 +67,14 @@ class ViewController: UIViewController {
         return footerView
     }
     
-    override func viewWillAppear(_ animated: Bool) {
-        super.viewWillAppear(animated)
-        navigationController?.setNavigationBarHidden(true, animated: animated)
-    }
-    
     func setupConstraints() {
         view.addSubview(tableView)
         view.addSubview(addButton)
         addButton.addSubview(addImage)
         view.addSubview(editButton)
         editButton.addSubview(editImage)
+        
+        [tableView, addButton, addImage, editImage, editButton].forEach{$0.translatesAutoresizingMaskIntoConstraints = false}
         
         NSLayoutConstraint.activate([
             tableView.topAnchor.constraint(equalTo: view.topAnchor),
@@ -118,43 +107,21 @@ class ViewController: UIViewController {
         editButton.addTarget(self, action: #selector(editPressed), for: .touchUpInside)
     }
     
-    func refreshLocalData() {
-        let encoder = JSONEncoder()
-        
-        if let encoded = try? encoder.encode(DataManager.shared.tasks) {
-            UserDefaults.standard.set(encoded, forKey: "tasks")
-        }
-    }
-    
     @objc func editPressed() {
-        if isChanging {
-            isChanging = false
-            editImage.image = UIImage(systemName: "pencil.circle.fill")
-            addButton.isHidden = false
-            tableView.isEditing = false
-            
-            for cell in tableView.visibleCells {
-                if let taskCell = cell as? TaskCell {
-                    taskCell.setEditingMode(false)
-                }
-            }
-        } else {
-            tableView.isEditing = true
-            isChanging = true
-            editImage.image = UIImage(systemName: "x.circle.fill")
-            addButton.isHidden = true
-            
-            for cell in tableView.visibleCells {
-                if let taskCell = cell as? TaskCell {
-                    taskCell.setEditingMode(true)
-                }
+        addButton.isHidden = !isEditingMode
+        tableView.isEditing = !isEditingMode
+        editImage.image = isEditingMode ? UIImage(systemName: "pencil.circle.fill") : UIImage(systemName: "x.circle.fill")
+        for cell in tableView.visibleCells {
+            if let taskCell = cell as? TaskCell {
+                taskCell.setEditingMode(!isEditingMode)
             }
         }
+        isEditingMode.toggle()
     }
     
     @objc func addPressed() {
         isNew = true
-        let vc = UINavigationController(rootViewController: EditingViewController(isNew: true, taskTitle: "", desc: ""))
+        let vc = UINavigationController(rootViewController: EditingViewController(task: Task(title: "", description: "", isDone: false), isNew: true))
         vc.modalPresentationStyle = .fullScreen
         present(vc, animated: true)
     }
@@ -163,17 +130,13 @@ class ViewController: UIViewController {
 
 extension ViewController: UITableViewDataSource, UITableViewDelegate, TaskCellDelegate{
     func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
-        return dataManager.tasks.count
+        return dataManager.getCount()
     }
     
     func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
         let cell = tableView.dequeueReusableCell(withIdentifier: "CellIdentifier", for: indexPath) as! TaskCell
-        cell.selectionStyle = .none
         cell.delegate = self
-        cell.titleLabel.text = dataManager.tasks[indexPath.row].title
-        cell.desc.text = dataManager.tasks[indexPath.row].description
-        cell.done = dataManager.tasks[indexPath.row].isDone
-        cell.checkImage.image = dataManager.tasks[indexPath.row].isDone ? UIImage(systemName: "checkmark.circle") : UIImage(systemName: "circle")
+        cell.configureCell(title: dataManager.tasks[indexPath.row].title, descriptionText: dataManager.tasks[indexPath.row].description, isDone: dataManager.tasks[indexPath.row].isDone, image: (dataManager.tasks[indexPath.row].isDone ? "checkmark.circle" : "circle"))
         return cell
     }
     
@@ -189,19 +152,17 @@ extension ViewController: UITableViewDataSource, UITableViewDelegate, TaskCellDe
     
     func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
         isNew = false
-        let taskTitle = dataManager.tasks[indexPath.row].title
-        let desc = dataManager.tasks[indexPath.row].description
-        let done = dataManager.tasks[indexPath.row].isDone
-        let vc = UINavigationController(rootViewController: EditingViewController(isNew: false, taskTitle: taskTitle, desc: desc, index:indexPath.row, isDone: done))
+        
+        let task = Task(title: dataManager.tasks[indexPath.row].title, description: dataManager.tasks[indexPath.row].description, isDone: dataManager.tasks[indexPath.row].isDone)
+        let vc = UINavigationController(rootViewController: EditingViewController(task: task, isNew: false, index:indexPath.row))
         vc.modalPresentationStyle = .fullScreen
         present(vc, animated: true)
     }
     
     func tableView(_ tableView: UITableView, commit editingStyle: UITableViewCell.EditingStyle, forRowAt indexPath: IndexPath) {
         if editingStyle == .delete {
-            DataManager.shared.tasks.remove(at: indexPath.row)
+            dataManager.removeTask(index: indexPath.row)
             tableView.deleteRows(at: [indexPath], with: .fade)
-            refreshLocalData()
         }
     }
     
@@ -210,15 +171,14 @@ extension ViewController: UITableViewDataSource, UITableViewDelegate, TaskCellDe
     }
     
     func tableView(_ tableView: UITableView, moveRowAt sourceIndexPath: IndexPath, to destinationIndexPath: IndexPath) {
-        let movedTask = dataManager.tasks.remove(at: sourceIndexPath.row)
-        dataManager.tasks.insert(movedTask, at: destinationIndexPath.row)
+        dataManager.moveTask(from: sourceIndexPath.row, into: destinationIndexPath.row)
     }
     
     func taskCellDidToggleDone(for cell: TaskCell) {
         if let indexPath = tableView.indexPath(for: cell) {
-            DataManager.shared.tasks[indexPath.row].isDone = cell.done
+            dataManager.toggleDone(index: indexPath.row, isDone: cell.doneTask)
             tableView.reloadRows(at: [indexPath], with: .none)
-            refreshLocalData()
+            dataManager.refreshData()
         }
     }
 }

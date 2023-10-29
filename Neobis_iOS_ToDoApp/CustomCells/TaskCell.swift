@@ -1,59 +1,47 @@
 import UIKit
 
 class TaskCell: UITableViewCell {
-    var done = false
+    var doneTask = false
     weak var delegate: TaskCellDelegate?
     
     var isEditingMode = false
     
-    let titleLabel: UILabel = {
+    lazy var titleLabel: UILabel = {
         let label = UILabel()
         label.font = UIFont.systemFont(ofSize: 16, weight: .regular)
-        label.translatesAutoresizingMaskIntoConstraints = false
         return label
     }()
     
-    let desc: UILabel = {
+    lazy var descriptionLabel: UILabel = {
         let label = UILabel()
         label.font = UIFont.systemFont(ofSize: 14, weight: .regular)
         label.numberOfLines = 0
-        label.translatesAutoresizingMaskIntoConstraints = false
         return label
     }()
     
-    let isDone: UIButton = {
+    lazy var isDone: UIButton = {
         let button = UIButton()
-        button.translatesAutoresizingMaskIntoConstraints = false
         return button
     }()
     
-    let checkImage: UIImageView = {
-        let image = UIImageView()
-        //image.image = UIImage(systemName: "checkmark.circle")
-        image.image = UIImage(systemName: "circle")
+    lazy var checkImage: UIImageView = {
+        let image = UIImageView(image: UIImage(systemName: "circle"))
         image.contentMode = .scaleAspectFit
         image.tintColor = UIColor(red: 240 / 255, green: 158 / 255 , blue: 30 / 255, alpha: 1)
-        image.translatesAutoresizingMaskIntoConstraints = false
         return image
     }()
     
-    let infoImage: UIImageView = {
-        let image = UIImageView()
-        image.image = UIImage(systemName: "info.circle")
+    lazy var infoImage: UIImageView = {
+        let image = UIImageView(image: UIImage(systemName: "info.circle"))
         image.contentMode = .scaleAspectFit
         image.tintColor = UIColor.systemBlue
-        //image.backgroundColor = UIColor.red
-        image.translatesAutoresizingMaskIntoConstraints = false
         return image
     }()
     
-    let arrowImage: UIImageView = {
-        let image = UIImageView()
-        image.image = UIImage(systemName: "chevron.right")
+    lazy var arrowImage: UIImageView = {
+        let image = UIImageView(image: UIImage(systemName: "chevron.right"))
         image.contentMode = .scaleAspectFit
         image.tintColor = UIColor.lightGray
-        //image.backgroundColor = UIColor.red
-        image.translatesAutoresizingMaskIntoConstraints = false
         return image
     }()
     
@@ -61,15 +49,23 @@ class TaskCell: UITableViewCell {
         super.init(style: style, reuseIdentifier: reuseIdentifier)
         setupConstraints()
         isDone.addTarget(self, action: #selector(donePressed), for: .touchUpInside)
+        selectionStyle = .none
+    }
+    
+    override func systemLayoutSizeFitting(_ targetSize: CGSize) -> CGSize {
+        let fittingSize = CGSize(width: targetSize.width, height: UIView.layoutFittingCompressedSize.height)
+        return contentView.systemLayoutSizeFitting(fittingSize, withHorizontalFittingPriority: .required, verticalFittingPriority: .fittingSizeLevel)
     }
     
     func setupConstraints() {
         contentView.addSubview(infoImage)
         contentView.addSubview(arrowImage)
         contentView.addSubview(titleLabel)
-        contentView.addSubview(desc)
+        contentView.addSubview(descriptionLabel)
         contentView.addSubview(isDone)
         isDone.addSubview(checkImage)
+        
+        [infoImage, arrowImage, titleLabel, descriptionLabel, isDone, checkImage].forEach{$0.translatesAutoresizingMaskIntoConstraints = false}
         
         NSLayoutConstraint.activate([
             isDone.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 16),
@@ -95,11 +91,17 @@ class TaskCell: UITableViewCell {
             titleLabel.topAnchor.constraint(equalTo: contentView.topAnchor, constant: 8),
             titleLabel.trailingAnchor.constraint(equalTo: infoImage.leadingAnchor, constant: -8),
             
-            desc.leadingAnchor.constraint(equalTo: isDone.trailingAnchor, constant: 8),
-            desc.topAnchor.constraint(equalTo: titleLabel.bottomAnchor, constant: 5),
-            desc.trailingAnchor.constraint(equalTo: infoImage.leadingAnchor, constant: -8),
-            desc.bottomAnchor.constraint(equalTo: contentView.bottomAnchor, constant: -8)
+            descriptionLabel.leadingAnchor.constraint(equalTo: isDone.trailingAnchor, constant: 8),
+            descriptionLabel.topAnchor.constraint(equalTo: titleLabel.bottomAnchor, constant: 5),
+            descriptionLabel.trailingAnchor.constraint(equalTo: infoImage.leadingAnchor, constant: -8),
+            descriptionLabel.bottomAnchor.constraint(equalTo: contentView.bottomAnchor, constant: -8)
         ])
+    }
+    
+    @objc func donePressed() {
+        checkImage.image = UIImage(systemName: doneTask ? "circle" : "checkmark.circle")
+        doneTask.toggle()
+        delegate?.taskCellDidToggleDone(for: self)
     }
     
     func setEditingMode(_ isEditing: Bool) {
@@ -108,21 +110,11 @@ class TaskCell: UITableViewCell {
         arrowImage.isHidden = isEditing
     }
     
-    @objc func donePressed() {
-        if done {
-            done = false
-            checkImage.image = UIImage(systemName: "circle")
-        } else {
-            done = true
-            checkImage.image = UIImage(systemName: "checkmark.circle")
-        }
-        
-        delegate?.taskCellDidToggleDone(for: self)
-    }
-    
-    override func systemLayoutSizeFitting(_ targetSize: CGSize) -> CGSize {
-        let fittingSize = CGSize(width: targetSize.width, height: UIView.layoutFittingCompressedSize.height)
-        return contentView.systemLayoutSizeFitting(fittingSize, withHorizontalFittingPriority: .required, verticalFittingPriority: .fittingSizeLevel)
+    func configureCell(title: String, descriptionText: String, isDone: Bool, image: String) {
+        titleLabel.text = title
+        descriptionLabel.text = descriptionText
+        doneTask = isDone
+        checkImage.image = UIImage(systemName: image)
     }
     
     required init?(coder aDecoder: NSCoder) {
