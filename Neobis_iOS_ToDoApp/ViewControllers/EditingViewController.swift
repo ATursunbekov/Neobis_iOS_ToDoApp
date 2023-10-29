@@ -7,19 +7,16 @@
 import UIKit
 
 class EditingViewController: UIViewController {
+    var dataManager = DataManager.shared
     var isNew: Bool = true
-    var taskTitle: String = ""
-    var desc: String = ""
-    var isDone: Bool?
+    var task: Task?
     var index: Int?
     
-    init(isNew: Bool, taskTitle: String, desc: String, index: Int? = nil, isDone: Bool? = nil) {
+    init(task: Task, isNew: Bool, index: Int? = nil) {
         super.init(nibName: nil, bundle: nil)
         self.isNew = isNew
-        self.taskTitle = taskTitle
-        self.desc = desc
         self.index = index
-        self.isDone = isDone
+        self.task = task
     }
     
     required init?(coder: NSCoder) {
@@ -30,7 +27,6 @@ class EditingViewController: UIViewController {
         let label = UILabel()
         label.text = "Название"
         label.font = UIFont.systemFont(ofSize: 14, weight: .regular)
-        label.translatesAutoresizingMaskIntoConstraints = false
         return label
     }()
     
@@ -38,36 +34,34 @@ class EditingViewController: UIViewController {
         let label = UILabel()
         label.text = "Описание"
         label.font = UIFont.systemFont(ofSize: 14, weight: .regular)
-        label.translatesAutoresizingMaskIntoConstraints = false
         return label
     }()
     
-    let textView: UITextView = {
+    lazy var textView: UITextView = {
         let textView = UITextView()
         textView.backgroundColor = .white
         textView.layer.borderColor = UIColor.lightGray.cgColor
         textView.layer.borderWidth = 1.0
         textView.layer.cornerRadius = 5
         textView.font = UIFont.systemFont(ofSize: 16, weight: .semibold)
-        textView.translatesAutoresizingMaskIntoConstraints = false
+        textView.delegate = self
         return textView
     }()
     
-    let descTextView: UITextView = {
+    lazy var descTextView: UITextView = {
         let textView = UITextView()
         textView.backgroundColor = .white
         textView.layer.borderColor = UIColor.lightGray.cgColor
         textView.layer.borderWidth = 1.0
         textView.layer.cornerRadius = 5
         textView.font = UIFont.systemFont(ofSize: 16, weight: .semibold)
-        textView.translatesAutoresizingMaskIntoConstraints = false
+        textView.delegate = self
         return textView
     }()
     
     let separatorView: UIView = {
         let separatorView = UIView()
         separatorView.backgroundColor = UIColor.lightGray
-        separatorView.translatesAutoresizingMaskIntoConstraints = false
         return separatorView
     }()
     
@@ -75,7 +69,6 @@ class EditingViewController: UIViewController {
         let button = UIButton()
         button.setTitle("Удалить", for: .normal)
         button.setTitleColor(.red, for: .normal)
-        button.translatesAutoresizingMaskIntoConstraints = false
         return button
     }()
     
@@ -95,28 +88,16 @@ class EditingViewController: UIViewController {
         return placeholderLabel
     }()
     
+    lazy var cancelButton = UIBarButtonItem(title: "Отмена", style: .plain, target: self, action: #selector(cancelButtonTapped))
+    
+    lazy var saveButton = UIBarButtonItem(title: "Сохранить", style: .plain, target: self, action: #selector(saveButtonTapped))
+    
     override func viewDidLoad() {
         super.viewDidLoad()
         view.backgroundColor = UIColor(red: 246 / 255, green: 245 / 255, blue: 247 / 255, alpha: 1)
-        let cancelButton = UIBarButtonItem(title: "Отмена", style: .plain, target: self, action: #selector(cancelButtonTapped))
-        cancelButton.tintColor = .systemRed
-        let saveButton = UIBarButtonItem(title: "Сохранить", style: .plain, target: self, action: #selector(saveButtonTapped))
-        saveButton.tintColor = .systemBlue
-        
         self.navigationItem.leftBarButtonItem = cancelButton
         self.navigationItem.rightBarButtonItem = saveButton
-        
         setupConstraints()
-        textView.delegate = self
-        descTextView.delegate = self
-        textView.text = taskTitle
-        descTextView.text = desc
-        if !isNew {
-            titlePlaceholder.isHidden = true
-            descPlaceholder.isHidden = true
-        } else {
-            deleteButton.isHidden = true
-        }
     }
     
     func setupConstraints() {
@@ -126,6 +107,8 @@ class EditingViewController: UIViewController {
         view.addSubview(descLabel)
         view.addSubview(descTextView)
         view.addSubview(deleteButton)
+        
+        [separatorView, titleLabel, textView, descLabel, descTextView, deleteButton].forEach{$0.translatesAutoresizingMaskIntoConstraints = false}
         
         NSLayoutConstraint.activate([
             separatorView.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor),
@@ -151,37 +134,47 @@ class EditingViewController: UIViewController {
             deleteButton.centerXAnchor.constraint(equalTo: view.centerXAnchor),
             deleteButton.topAnchor.constraint(equalTo: descTextView.bottomAnchor, constant: 30),
         ])
+        
         //Title textView
         textView.addSubview(titlePlaceholder)
         titlePlaceholder.font = .italicSystemFont(ofSize: (textView.font?.pointSize)!)
         titlePlaceholder.frame.origin = CGPoint(x: 5, y: (textView.font?.pointSize)! / 2)
         titlePlaceholder.isHidden = !textView.text.isEmpty
+        
         //Desciption textView
         descTextView.addSubview(descPlaceholder)
         descPlaceholder.font = .italicSystemFont(ofSize: (descTextView.font?.pointSize)!)
         descPlaceholder.frame.origin = CGPoint(x: 5, y: (descTextView.font?.pointSize)! / 2)
         descPlaceholder.isHidden = !descTextView.text.isEmpty
+        
         //Targets:
         deleteButton.addTarget(self, action: #selector(deleteTapped), for: .touchUpInside)
-    }
-    
-    func refreshLocalData() {
-        let encoder = JSONEncoder()
         
-        if let encoded = try? encoder.encode(DataManager.shared.tasks) {
-            UserDefaults.standard.set(encoded, forKey: "tasks")
+        //NavigationButtons
+        cancelButton.tintColor = .systemRed
+        saveButton.tintColor = .systemBlue
+        
+        //Settingup texts
+        textView.text = task?.title
+        descTextView.text = task?.description
+        //hiding views
+        if !isNew {
+            titlePlaceholder.isHidden = true
+            descPlaceholder.isHidden = true
+        } else {
+            deleteButton.isHidden = true
         }
     }
     
     @objc func saveButtonTapped() {
-        DispatchQueue.main.async {
-            if self.isNew {
-                DataManager.shared.tasks.append(Task(title: self.textView.text, description: self.descTextView.text, isDone: false))
-            } else {
-                DataManager.shared.tasks[self.index!] = Task(title: self.textView.text, description: self.descTextView.text, isDone: self.isDone ?? false)
+        if self.isNew {
+            DataManager.shared.tasks.append(Task(title: textView.text, description: descTextView.text, isDone: false))
+        } else {
+            if let i = index {
+                DataManager.shared.tasks[i] = Task(title: textView.text, description: descTextView.text, isDone: task?.isDone ?? false)
             }
-            self.refreshLocalData()
         }
+        dataManager.refreshData()
         dismiss(animated: true)
     }
     
@@ -190,9 +183,8 @@ class EditingViewController: UIViewController {
     }
     
     @objc func deleteTapped() {
-        DispatchQueue.main.async {
-            DataManager.shared.tasks.remove(at: self.index!)
-            self.refreshLocalData()
+        if let i = index {
+            dataManager.removeTask(index: i)
         }
         dismiss(animated: true)
     }
@@ -200,19 +192,11 @@ class EditingViewController: UIViewController {
 
 extension EditingViewController: UITextViewDelegate {
     func textViewDidChange(_ textView: UITextView) {
-        if textView == self.textView {
-            titlePlaceholder.isHidden = !textView.text.isEmpty
-        } else if textView == self.descTextView {
-            descPlaceholder.isHidden = !textView.text.isEmpty
-        }
+        hidePlaceholders(checkTitle: (textView == self.textView), checkDescription: (textView == self.descTextView))
     }
     
     func textViewDidEndEditing(_ textView: UITextView) {
-        if textView == self.textView {
-            titlePlaceholder.isHidden = !textView.text.isEmpty
-        } else if textView == self.descTextView {
-            descPlaceholder.isHidden = !textView.text.isEmpty
-        }
+        hidePlaceholders(checkTitle: (textView == self.textView), checkDescription: (textView == self.descTextView))
     }
     
     func textViewDidBeginEditing(_ textView: UITextView) {
@@ -220,6 +204,14 @@ extension EditingViewController: UITextViewDelegate {
             titlePlaceholder.isHidden = true
         } else if textView == self.descTextView {
             descPlaceholder.isHidden = true
+        }
+    }
+    
+    func hidePlaceholders(checkTitle: Bool, checkDescription: Bool) {
+        if checkTitle {
+            titlePlaceholder.isHidden = !textView.text.isEmpty
+        } else if checkDescription {
+            descPlaceholder.isHidden = !textView.text.isEmpty
         }
     }
 }
